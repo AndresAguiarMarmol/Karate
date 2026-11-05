@@ -1,5 +1,7 @@
 # Dojo de Karate La Reina — Gestión Financiera, Alumnos y Control de Cobranza
 
+> 🌐 **Aplicación en Vivo (Remoto):** [https://andresaguiarmarmol.github.io/Karate/](https://andresaguiarmarmol.github.io/Karate/)
+>
 > **Aplicación Web Progresiva (SPA / PWA)** completa y moderna para la gestión financiera, control de mensualidades con aporte adicional al fondo de reserva, conciliación bancaria, arrastre multianual de deudas y emisión automática de cobranza por correo electrónico.
 
 ---

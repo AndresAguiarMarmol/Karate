@@ -74,6 +74,12 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
 
 ## 3. Historial de cambios
 
+### 2026-11-05: Activación de GitHub Pages y despliegue de URL remota en vivo
+- Activado el servicio de **GitHub Pages** sobre la rama `main` (raíz `/`) mediante la API oficial de GitHub.
+- Verificado el build y despliegue exitoso (HTTP 200) de la aplicación SPA en el dominio público:
+  `https://andresaguiarmarmol.github.io/Karate/`
+- Configurado el campo `homepage` del repositorio en GitHub apuntando a la URL pública y actualizado `README.md` con el enlace directo.
+
 ### 2026-11-05: Creación del repositorio oficial en GitHub y sincronización completa
 - Verificada la existencia previa en GitHub y creado el repositorio oficial público: `https://github.com/AndresAguiarMarmol/Karate` con su descripción institucional.
 - Reconfigurado el origen remoto de Git (`origin`) desde la plantilla original hacia `https://github.com/AndresAguiarMarmol/Karate.git`.

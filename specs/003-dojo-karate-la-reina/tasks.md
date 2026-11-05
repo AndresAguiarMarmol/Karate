@@ -1,0 +1,27 @@
+# Tareas de Implementación: SPEC-003
+
+- [x] T1: Definir modelo de datos JSON para Cuentas, Alumnos, Transacciones, Categorías y Configuración.
+- [x] T2: Programar la lógica contable y cálculo de saldos dinámicos (cuentas, balance, ingresos vs egresos).
+- [x] T3: Desarrollar el algoritmo de semáforo de mensualidades y arrastre de deudas multianuales (desglose de meses históricos impagos + acumulado total).
+- [x] T4: Construir la estructura visual SPA completa en `index.html` con Tailwind CSS y navegación por tabs.
+- [x] T5: Implementar los formularios y modales:
+  - [x] T5.1: Modal Alta / Edición de Alumno (con grado Kyu/Dan y pacto mensual individual).
+  - [x] T5.2: Modal Registro Rápido de Pago de Mensualidad (con detección de meses pendientes).
+  - [x] T5.3: Modal Registro de Egreso según Plan de Cuentas (1000 al 5000).
+  - [x] T5.4: Modal Transferencia entre Cuentas.
+  - [x] T5.5: Modal Ficha Detallada de Alumno (historial y saldos históricos).
+  - [x] T5.6: Modal Respaldo / Restauración JSON y Exportación CSV.
+- [x] T6: Implementar persistencia reactiva en `localStorage` con dataset demo precargado.
+- [x] T7: Validar exhaustivamente en navegador y consola.
+- [x] T8: Actualizar `memory.md` según AGENTS.md.
+- [x] T9: Eliminar todos los alumnos de prueba y purgar transacciones de mensualidades demo para operación real limpia.
+- [x] T10: Blanquear saldos de cuentas bancarias a $0, vaciar transacciones de prueba e incorporar opción de ajuste de saldo inicial.
+- [x] T11: Habilitar opciones de edición de datos básicos de alumnos en tarjetas y modales, con sincronización en transacciones y función de eliminación.
+- [x] T12: Configurar cobro conjunto de cuota mensual con adicional de Fondo de Reserva (10% sugerido y editable), cargado automáticamente a CTA-02 Banco Santander.
+- [x] T13: Habilitar cobranza por correo electrónico al alumno (destinatario afiliado) y desde el correo emisor oficial configurado por el usuario (remitente), con desglose de cuota, 10% de Fondo de Reserva, datos de transferencia bancaria y arrastre multianual.
+- [x] T14: Programación y automatización del envío de correo de cobranza el día 3 de cada mes a las 01:00 AM (daemon cron en Antigravity, banner reactivo de período de cobro, modal de emisión por lote y persistencia de último mes ejecutado en settings.billingSchedule).
+- [x] T15: Incorporar footer oficial con créditos de autoría ("Análisis/Diseño de Andres Aguiar V AAMM.DD Santiago de Chile Mes y Año Actual - Contacto +56933395447 - Whatsapp +56933395447") como valor fijo/estático inmutable generado al compilar/crear la app (V 2611.04 Noviembre 2026), sin mutaciones dinámicas de fecha hasta la próxima regeneración, preservando íntegros los botones administrativos del dojo.
+- [x] T16: En el módulo "Programación y Emisión Automática de Cobranza": (1) Ejecutar notificaciones automáticas de inmediato si la fecha y hora prevista (Día 3 a la 01:00 AM) ya se cumplió o pasó y aún no se envían, con temporizador activo cada 60s; (2) Reemplazar alertas engañosas por canales de despacho reales y verificables (Gmail Web pre-llenado, Outlook Web, WhatsApp con formato +569 y App Local), despacho en lote con Gmail CCO/BCC y trazabilidad de estado por atleta.
+- [x] T17: Incorporar conceptos detallados de cobranza en la carta masiva "Todos en Gmail (CCO)" (`generateBatchBillingDraft`): desglose de Cuota Tatami, Aporte 10% Fondo de Reserva, notas de Arrastre Multianual, detalle individual por atleta en nómina, totales consolidados y datos de cuentas bancarias de Banco Estado y Banco Santander.
+- [x] T18: Implementar emisión de correos individuales personalizados en Gmail para cada miembro del dojo a sus correos afiliados (`dispatchBatchIndividualEmails`), con desglose explícito de conceptos (Cuota Tatami, 10% Fondo Reserva, deudas previas), registro del estado individual y Asistente Modal de Despacho (`modal-individual-dispatch`) para facilitar re-apertura y evitar bloqueos de pop-ups.
+- [x] T19: Implementar recorrido secuencial de deudores con separación de 15 segundos y cierre automático de la sesión/ventana de correo electrónico (`currentWindow.close()`) para evitar bloqueos de exploradores modernos y saturación de recursos, incorporando panel de control reactivo en el Asistente Modal (barra de progreso, cuenta regresiva de 15s, indicador de deudor activo y controles de pausar/reanudar/detener).

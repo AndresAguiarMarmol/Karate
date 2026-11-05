@@ -1,14 +1,14 @@
-# AGENTS.md — Portfolio & Curriculum Web (CV Web)
+# AGENTS.md — Dojo de Karate La Reina
 
 Guía para agentes de IA que trabajen en este proyecto.
 
 ## Memoria del proyecto (`memory.md`) — OBLIGATORIO
-`memory.md` guarda todo lo que debe preservarse entre sesiones: la estructura de los datos (`PROFILE_DATA`), las decisiones de diseño/arquitectura vigentes y el historial de cambios.
+`memory.md` guarda todo lo que debe preservarse entre sesiones: la estructura de los datos (`localStorage`), las decisiones de diseño/arquitectura vigentes y el historial de cambios.
 
 1. **Al empezar cualquier tarea:** leer `memory.md` completo antes de tocar código.
-2. **Durante la tarea:** respetar la estructura de datos en `assets/js/data.js` y las decisiones vigentes. Si un cambio altera la estructura de datos, asegurar que no cause excepciones al renderizar en `main.js`.
+2. **Durante la tarea:** respetar la estructura de datos en `index.html` y las decisiones vigentes. Si un cambio altera la estructura de datos, asegurar que no cause excepciones ni rompa la persistencia.
 3. **Al terminar cualquier tarea que cambie algo:** actualizar `memory.md`:
-   - Sección 1 si cambia la estructura de `PROFILE_DATA` o persistencia en `localStorage`.
+   - Sección 1 si cambia la estructura de datos o persistencia en `localStorage`.
    - Sección 2 si se toma, cambia o elimina una decisión arquitectónica o de diseño.
    - Sección 3: añadir arriba una entrada con la fecha y un resumen breve del cambio.
 4. Si `memory.md` y el código no coinciden, avisar al usuario antes de seguir.
@@ -16,15 +16,8 @@ Guía para agentes de IA que trabajen en este proyecto.
 ---
 
 ## Descripción del proyecto
-Sitio web profesional, interactivo y de alto rendimiento que actúa como Portfolio y Curriculum Vitae digital de **Andres Aguiar** (Analista de Sistemas TI con más de 40 años de trayectoria en operaciones, desarrollo Python/SQL, adopción práctica de Inteligencia Artificial y finanzas tecnológicas).
+Aplicación Web Progresiva (SPA / PWA) para la gestión contable, control de alumnos y emisión automatizada de cobranzas del Dojo de Karate (Municipalidad de La Reina).
 
-El sitio permite a reclutadores, líderes técnicos y clientes:
-- Explorar el resumen ejecutivo (Elevator Pitch en 30 segundos).
-- Filtrar y analizar casos de estudio y proyectos en formato STAR (Situación, Tarea, Acción, Resultado).
-- Revisar habilidades técnicas estructuradas y trayectoria laboral detallada.
-- Validar certificaciones oficiales con enlaces de verificación y descarga directa de PDFs.
-- Cambiar entre temas Claro y Oscuro con persistencia automática.
-- Descargar o imprimir un CV ejecutivo en PDF optimizado mediante estilos `@media print`.
 
 ---
 

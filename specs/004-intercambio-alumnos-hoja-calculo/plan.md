@@ -32,3 +32,4 @@
 ## 2. Plan de Pruebas Automatizadas
 1. **Prueba 23:** Exportación a CSV con formato enriquecido, UTF-8 BOM y todos los campos del alumno.
 2. **Prueba 24:** Importación desde CSV con auto-detección de delimitadores (coma y punto y coma), creación de alumnos nuevos y actualización de alumnos existentes sin duplicar ni romper integridad contable.
+

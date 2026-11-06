@@ -68,6 +68,10 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
   - **Exportación con UTF-8 BOM (`exportStudentsSpreadsheet`):** Descarga la nómina completa en CSV incluyendo el prefijo `\uFEFF` para apertura transparente en Microsoft Excel y Google Sheets con soporte nativo de caracteres en español (tildes, eñes), conteniendo campos personales, contractuales, observaciones y desglose de deudas.
   - **Importación Inteligente con Upsert (`importStudentsSpreadsheet`):** Procesa archivos CSV con detección automática de delimitador (`,`, `;` o tabulador) y normalización de encabezados. Realiza *upsert*: si el alumno ya existe por ID o RUT, actualiza sus datos básicos sin borrar ni alterar sus movimientos contables previos; si es nuevo, lo incorpora asignando ID correlativo.
   - **Ubicación Integrada:** Dispone de 2 botones dedicados (`Exportar Hoja de Cálculo` e `Importar Hoja de Cálculo`) ubicados en el modal de respaldo y recuperación (`modal-backup`) y en la cabecera de Alumnos & Mensualidades.
+- **Aislamiento Estricto y Ocultamiento de Modales Nativos (`<dialog>`):**
+  - Se añade la regla CSS imperativa `dialog:not([open]) { display: none !important; }` en el `<style>` global.
+  - Ninguna etiqueta nativa `<dialog>` debe llevar clases utilitarias de display de Tailwind (como `flex`, `grid` o `inline`) para evitar que el motor de CSS de autor prevalezca sobre la regla de ocultamiento del agente de usuario.
+  - La distribución flex y el scroll vertical (`max-h`, `overflow-y-auto`) se encapsulan siempre en contenedores `<div>` internos.
 - **Portabilidad:** La aplicación cuenta con exportación e importación completa en formato JSON y exportación de planillas mensuales y libro diario a CSV.
 - **Créditos y Pie de Página Oficial Fijo (Footer):**
   - La aplicación incorpora un footer oficial con los créditos de autoría: `"Análisis/Diseño de Andres Aguiar V AAMM.DD Santiago de Chile Mes y Año Actual - Contacto +56933395447 - Whatsapp +56933395447"`.
@@ -77,6 +81,12 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-05: Corrección de visibilidad permanente en Modal de Respaldo y Recuperación (SPEC-005)
+- Corregida la anomalía por la cual el modal de respaldo `#modal-backup` permanecía visible de forma fija sobre la interfaz impidiendo trabajar con otras opciones.
+- Removidas las clases de display `flex flex-col` de la etiqueta `<dialog id="modal-backup">`, trasladándolas a un `<div>` interno estructurado con cabecera, cuerpo desplazable y botón visible de cierre en el pie.
+- Agregada regla defensiva global `dialog:not([open]) { display: none !important; }` para blindar todos los modales nativos contra sobreescrituras accidentales de Tailwind CSS.
+- Añadida prueba unitaria 25 en `tests/dojo_accounting.test.js` (25/25 pruebas aprobadas).
 
 ### 2026-11-05: Intercambio de alumnos con profesor vía Hoja de Cálculo (SPEC-004)
 - Implementada la especificación **SPEC-004** para intercambiar información de los miembros del club con el profesor de Karate mediante hojas de cálculo (CSV compatible con Excel y Google Sheets).

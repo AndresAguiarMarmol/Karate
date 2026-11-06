@@ -62,3 +62,4 @@ Estos botones deben situarse junto a los mecanismos existentes de respaldo y rec
 - **Seguridad e Integridad:** Los datos de transacciones contables, pagos y cuentas bancarias NO deben corromperse ni eliminarse durante la importación.
 - **Compatibilidad Multiplataforma:** Debe funcionar en navegadores de escritorio y móviles sin alterar ninguna otra funcionalidad de la app.
 - **Pruebas Automatizadas:** Mínimo 2 pruebas unitarias adicionales en `tests/dojo_accounting.test.js` que verifiquen la exportación e importación de nómina de alumnos vía hoja de cálculo.
+

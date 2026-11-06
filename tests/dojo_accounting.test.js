@@ -762,3 +762,18 @@ test('importStudentsSpreadsheet procesa hojas de cálculo con auto-detección de
   assert.strictEqual(newStudent.monthlyFee, 45000);
   assert.ok(newStudent.id.startsWith('ALU-'));
 });
+
+test('Modales nativos dialog:not([open]) están protegidos con display: none !important y sin clases de display incompatibles', () => {
+  // 1. Verificar regla defensiva en CSS
+  assert.ok(html.includes('dialog:not([open])'), 'Debe existir regla para dialog:not([open]) en CSS');
+  assert.ok(html.includes('display: none !important;'), 'dialog:not([open]) debe usar display: none !important');
+
+  // 2. Verificar que ninguna etiqueta <dialog> contenga clases que fuercen display (como flex, inline, block, grid)
+  const dialogTags = html.match(/<dialog[^>]*>/g) || [];
+  assert.ok(dialogTags.length >= 8, 'Deben existir al menos 8 modales <dialog>');
+  dialogTags.forEach(tag => {
+    assert.ok(!tag.includes('flex '), `La etiqueta dialog no debe tener clase 'flex': ${tag}`);
+    assert.ok(!tag.includes('inline'), `La etiqueta dialog no debe tener clase 'inline': ${tag}`);
+    assert.ok(!tag.includes('grid'), `La etiqueta dialog no debe tener clase 'grid': ${tag}`);
+  });
+});

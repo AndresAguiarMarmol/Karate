@@ -15,3 +15,4 @@
 ## 2. Pruebas Automatizadas
 - Añadir en `tests/dojo_accounting.test.js`:
   - Prueba 25: Validar que `index.html` contenga la regla `dialog:not([open]) { display: none !important; }` y que `#modal-backup` no tenga clases `flex` en su etiqueta `<dialog>`.
+

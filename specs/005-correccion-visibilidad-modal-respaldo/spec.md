@@ -26,3 +26,4 @@ Al interactuar con la aplicación, la ventana de **Respaldo/Recuperación** (`#m
    - Añadir un botón visible de cierre en el pie del modal (`Cerrar`) además del botón ✖ en la cabecera.
 3. **Verificación Automatizada:**
    Añadir prueba unitaria en `tests/dojo_accounting.test.js` para asegurar que el elemento `<dialog id="modal-backup">` no posea clases de `display` incompatibles y que la regla `dialog:not([open])` esté presente.
+

@@ -19,3 +19,4 @@ Como consecuencia, al abrir la aplicación el usuario siempre visualizaba el per
    - La selección manual mediante `App.setMonth(val)` y `App.setYear(val)` debe continuar funcionando libremente si el usuario desea auditar períodos pasados o futuros durante la sesión.
 4. **Verificación Automatizada:**
    - Agregar prueba unitaria en `tests/dojo_accounting.test.js` que valide que `setupSelects()` y la inicialización de `App` seleccionen siempre el mes y año actual según la fecha del sistema.
+

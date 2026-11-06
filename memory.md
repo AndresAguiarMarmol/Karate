@@ -68,6 +68,10 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
   - **Exportación con UTF-8 BOM (`exportStudentsSpreadsheet`):** Descarga la nómina completa en CSV incluyendo el prefijo `\uFEFF` para apertura transparente en Microsoft Excel y Google Sheets con soporte nativo de caracteres en español (tildes, eñes), conteniendo campos personales, contractuales, observaciones y desglose de deudas.
   - **Importación Inteligente con Upsert (`importStudentsSpreadsheet`):** Procesa archivos CSV con detección automática de delimitador (`,`, `;` o tabulador) y normalización de encabezados. Realiza *upsert*: si el alumno ya existe por ID o RUT, actualiza sus datos básicos sin borrar ni alterar sus movimientos contables previos; si es nuevo, lo incorpora asignando ID correlativo.
   - **Ubicación Integrada:** Dispone de 2 botones dedicados (`Exportar Hoja de Cálculo` e `Importar Hoja de Cálculo`) ubicados en el modal de respaldo y recuperación (`modal-backup`) y en la cabecera de Alumnos & Mensualidades.
+- **Selección Automática del Mes y Año Actual en el Período (SPEC-006):**
+  - Al iniciar o recargar la aplicación (`App.init()`), la rutina `setupSelects()` determina dinámicamente el año (`now.getFullYear()`) y el mes en curso (`String(now.getMonth() + 1).padStart(2, '0')`), asignándolos como estado activo inicial (`App.selectedYear` y `App.selectedMonth`) y sincronizando los selectores `#select-year` y `#select-month`.
+  - Se eliminan los valores fijos cableados (`selected` en Marzo en el HTML).
+  - El usuario preserva plena libertad para alternar manualmente de mes o año durante la sesión.
 - **Aislamiento Estricto y Ocultamiento de Modales Nativos (`<dialog>`):**
   - Se añade la regla CSS imperativa `dialog:not([open]) { display: none !important; }` en el `<style>` global.
   - Ninguna etiqueta nativa `<dialog>` debe llevar clases utilitarias de display de Tailwind (como `flex`, `grid` o `inline`) para evitar que el motor de CSS de autor prevalezca sobre la regla de ocultamiento del agente de usuario.
@@ -81,6 +85,11 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-06: Selección automática del mes actual en el selector de período (SPEC-006)
+- Se eliminó el valor cableado estático (`Marzo / 03`) en `#select-month` y en la definición de `App`.
+- Se actualizó `App.setupSelects()` e inicialización de `App` para detectar dinámicamente el mes (`String(now.getMonth() + 1).padStart(2, '0')`) y año actual (`now.getFullYear()`), posicionando automáticamente los selectores de la cabecera en el período en curso al abrir la app.
+- Se añadió la prueba unitaria 26 en `tests/dojo_accounting.test.js` que valida la detección y sincronización dinámica del período actual (40/40 pruebas aprobadas).
 
 ### 2026-11-05: Corrección de visibilidad permanente en Modal de Respaldo y Recuperación (SPEC-005)
 - Corregida la anomalía por la cual el modal de respaldo `#modal-backup` permanecía visible de forma fija sobre la interfaz impidiendo trabajar con otras opciones.

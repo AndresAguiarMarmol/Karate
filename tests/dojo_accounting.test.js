@@ -777,3 +777,48 @@ test('Modales nativos dialog:not([open]) están protegidos con display: none !im
     assert.ok(!tag.includes('grid'), `La etiqueta dialog no debe tener clase 'grid': ${tag}`);
   });
 });
+
+test('Selección automática del mes y año actual en el período al inicializar (SPEC-006)', () => {
+  const now = new Date();
+  const expectedYear = String(now.getFullYear());
+  const expectedMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+  // 1. Instanciar un nuevo App desde el script para verificar valores iniciales definidos
+  const fresh = fn(sandbox.localStorage, sandbox.window, sandbox.document, Intl, Date, Set, sandbox.prompt, sandbox.alert, sandbox.confirm);
+  assert.strictEqual(fresh.App.selectedYear, expectedYear, 'fresh.App.selectedYear debe coincidir con el año actual');
+  assert.strictEqual(fresh.App.selectedMonth, expectedMonth, 'fresh.App.selectedMonth debe coincidir con el mes actual');
+
+  // 2. Mock de elementos select del DOM
+  const mockYearSelect = {
+    options: [{ value: '2025' }, { value: '2026' }],
+    value: '',
+    appendChild(opt) { this.options.push(opt); }
+  };
+  const mockMonthSelect = {
+    value: ''
+  };
+
+  const prevGetElementById = sandbox.document.getElementById;
+  sandbox.document.getElementById = (id) => {
+    if (id === 'select-year') return mockYearSelect;
+    if (id === 'select-month') return mockMonthSelect;
+    return null;
+  };
+
+  try {
+    // Si se alterara el período en tiempo de ejecución, setupSelects debe restablecer siempre el mes y año en curso
+    App.selectedYear = '1999';
+    App.selectedMonth = '01';
+    App.setupSelects();
+
+    assert.strictEqual(App.selectedYear, expectedYear, 'setupSelects debe reasignar el año actual');
+    assert.strictEqual(App.selectedMonth, expectedMonth, 'setupSelects debe reasignar el mes actual');
+    assert.strictEqual(mockYearSelect.value, expectedYear, 'El selector select-year debe posicionarse en el año actual');
+    assert.strictEqual(mockMonthSelect.value, expectedMonth, 'El selector select-month debe posicionarse en el mes actual');
+  } finally {
+    sandbox.document.getElementById = prevGetElementById;
+  }
+
+  // 3. Verificar que en el HTML no quede <option value="03" selected>Marzo</option>
+  assert.ok(!html.includes('value="03" selected'), 'Marzo no debe tener selected cableado en el HTML');
+});

@@ -64,6 +64,10 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
   - `4000`: Eventos y Afiliaciones (4010 Federación, 4020 Torneos, 4030 Exámenes de grado).
   - `5000`: Administración y Varios (5010 Comisiones, 5020 Publicidad, 5030 Varios).
 - **Conciliación de Transferencias:** Las transferencias entre cuentas descuentan de la cuenta de origen y suman a la de destino sin afectar el balance operacional del mes ni el patrimonio neto global del Dojo.
+- **Intercambio de Nómina de Alumnos vía Hoja de Cálculo (CSV / Excel):**
+  - **Exportación con UTF-8 BOM (`exportStudentsSpreadsheet`):** Descarga la nómina completa en CSV incluyendo el prefijo `\uFEFF` para apertura transparente en Microsoft Excel y Google Sheets con soporte nativo de caracteres en español (tildes, eñes), conteniendo campos personales, contractuales, observaciones y desglose de deudas.
+  - **Importación Inteligente con Upsert (`importStudentsSpreadsheet`):** Procesa archivos CSV con detección automática de delimitador (`,`, `;` o tabulador) y normalización de encabezados. Realiza *upsert*: si el alumno ya existe por ID o RUT, actualiza sus datos básicos sin borrar ni alterar sus movimientos contables previos; si es nuevo, lo incorpora asignando ID correlativo.
+  - **Ubicación Integrada:** Dispone de 2 botones dedicados (`Exportar Hoja de Cálculo` e `Importar Hoja de Cálculo`) ubicados en el modal de respaldo y recuperación (`modal-backup`) y en la cabecera de Alumnos & Mensualidades.
 - **Portabilidad:** La aplicación cuenta con exportación e importación completa en formato JSON y exportación de planillas mensuales y libro diario a CSV.
 - **Créditos y Pie de Página Oficial Fijo (Footer):**
   - La aplicación incorpora un footer oficial con los créditos de autoría: `"Análisis/Diseño de Andres Aguiar V AAMM.DD Santiago de Chile Mes y Año Actual - Contacto +56933395447 - Whatsapp +56933395447"`.
@@ -73,6 +77,14 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-05: Intercambio de alumnos con profesor vía Hoja de Cálculo (SPEC-004)
+- Implementada la especificación **SPEC-004** para intercambiar información de los miembros del club con el profesor de Karate mediante hojas de cálculo (CSV compatible con Excel y Google Sheets).
+- Añadidos dos botones específicos junto a los mecanismos de respaldo y recuperación (`modal-backup`):
+  1. **`[Exportar Hoja de Cálculo]`**: Genera y descarga la nómina completa de miembros con prefijo UTF-8 BOM (`\uFEFF`) para compatibilidad directa con tildes y eñes en Excel, incluyendo campos deportivos, contractuales, observaciones y resumen de deudas.
+  2. **`[Importar Hoja de Cálculo]`**: Permite seleccionar y procesar archivos CSV con detección automática de delimitadores (coma, punto y coma o tabulador), normalización de encabezados flexibles y lógica *upsert* (actualiza por ID o RUT sin tocar pagos históricos o crea nuevos alumnos).
+- Añadidos botones complementarios en la barra de acciones de la pestaña Alumnos & Mensualidades.
+- Añadidas pruebas unitarias automatizadas 23 y 24 en `tests/dojo_accounting.test.js` (24/24 pruebas aprobadas).
 
 ### 2026-11-05: Activación de GitHub Pages y despliegue de URL remota en vivo
 - Activado el servicio de **GitHub Pages** sobre la rama `main` (raíz `/`) mediante la API oficial de GitHub.

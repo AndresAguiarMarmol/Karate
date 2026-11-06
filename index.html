@@ -356,8 +356,11 @@
 
         <!-- Botones de Acción -->
         <div class="flex items-center gap-2">
-          <button onclick="App.exportStudentsCSV()" class="px-3 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-sm">
-            <i data-lucide="download" class="w-4 h-4"></i> Exportar Planilla
+          <button onclick="App.exportStudentsSpreadsheet()" title="Exportar nómina de alumnos a Hoja de Cálculo (Excel / Sheets)" class="px-3 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="download" class="w-4 h-4 text-emerald-600"></i> Exportar Hoja de Cálculo
+          </button>
+          <button onclick="App.openBackupModal()" title="Importar o intercambiar nómina de alumnos vía Hoja de Cálculo" class="px-3 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="upload" class="w-4 h-4 text-teal-600"></i> Importar Hoja de Cálculo
           </button>
           <button onclick="App.openStudentModal()" class="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5 shadow">
             <i data-lucide="user-plus" class="w-4 h-4"></i> Registrar Alumno
@@ -1019,34 +1022,66 @@
     </form>
   </dialog>
 
-  <!-- 5. Modal: Respaldo / Restauración de Datos JSON -->
-  <dialog id="modal-backup" class="p-0 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg bg-white overflow-hidden">
-    <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+  <!-- 5. Modal: Respaldo, Restauración e Intercambio de Datos -->
+  <dialog id="modal-backup" class="p-0 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg bg-white overflow-hidden max-h-[92vh] flex flex-col">
+    <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2">
         <i data-lucide="database" class="w-5 h-5 text-amber-400"></i>
-        <h3 class="font-bold text-sm">Respaldo y Restauración de Datos (JSON)</h3>
+        <h3 class="font-bold text-sm">Respaldo, Recuperación e Intercambio de Datos</h3>
       </div>
       <button onclick="App.closeDialog('modal-backup')" class="text-slate-400 hover:text-white transition">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
     </div>
 
-    <div class="p-6 space-y-5 text-xs">
+    <div class="p-6 space-y-4 text-xs overflow-y-auto">
+      <!-- Sección: Intercambio de Alumnos vía Hoja de Cálculo con Profesor -->
+      <div class="bg-emerald-50/70 p-4 rounded-xl border-2 border-emerald-500/40 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-emerald-950 flex items-center gap-1.5 text-sm">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i> Intercambio con Profesor (Hoja de Cálculo / Excel)
+          </h4>
+          <span class="px-2 py-0.5 bg-emerald-200 text-emerald-900 rounded font-bold text-[10px] tracking-wide">Excel / Sheets</span>
+        </div>
+        <p class="text-slate-600 leading-relaxed text-[11px]">
+          Mecanismo para compartir e intercambiar la nómina de alumnos con el profesor en formato CSV (abrible de inmediato en Excel y Google Sheets). Al importar, actualiza alumnos existentes (por RUT o ID) y registra nuevos atletas respetando íntegramente el historial contable.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <!-- Botón 1: Exportar Hoja de Cálculo -->
+          <button onclick="App.exportStudentsSpreadsheet()" class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-sm flex items-center justify-center gap-2 text-xs">
+            <i data-lucide="download" class="w-4 h-4"></i> Exportar Hoja de Cálculo
+          </button>
+
+          <!-- Botón 2: Importar Hoja de Cálculo -->
+          <button onclick="document.getElementById('import-spreadsheet-file').click()" class="w-full py-2.5 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition shadow-sm flex items-center justify-center gap-2 text-xs">
+            <i data-lucide="upload" class="w-4 h-4"></i> Importar Hoja de Cálculo
+          </button>
+        </div>
+
+        <div class="pt-1 border-t border-emerald-200/80">
+          <label class="block text-[10px] font-semibold text-emerald-900 mb-1">Seleccionar archivo CSV para importar:</label>
+          <input type="file" id="import-spreadsheet-file" accept=".csv,text/csv,text/comma-separated-values" onchange="App.importStudentsSpreadsheet(this)" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-800 hover:file:bg-emerald-200 cursor-pointer">
+        </div>
+      </div>
+
+      <!-- Respaldo Completo JSON -->
       <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
         <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-1.5 text-sm">
-          <i data-lucide="download" class="w-4 h-4 text-emerald-600"></i> Descargar Respaldo Completo
+          <i data-lucide="download" class="w-4 h-4 text-slate-700"></i> Descargar Respaldo Completo (JSON)
         </h4>
-        <p class="text-slate-500 mb-3">Genera una copia íntegra de la base de datos (alumnos, cuentas, movimientos, deudas históricas) en formato JSON descargable.</p>
-        <button onclick="App.downloadBackupJSON()" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow flex items-center justify-center gap-2">
+        <p class="text-slate-500 mb-3 text-[11px]">Genera una copia íntegra de la base de datos (alumnos, cuentas, movimientos, deudas históricas) en formato JSON descargable.</p>
+        <button onclick="App.downloadBackupJSON()" class="w-full py-2.5 px-4 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-lg transition shadow flex items-center justify-center gap-2">
           <i data-lucide="download-cloud" class="w-4 h-4"></i> Exportar Base de Datos JSON
         </button>
       </div>
 
+      <!-- Restauración JSON -->
       <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
         <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-1.5 text-sm">
           <i data-lucide="upload" class="w-4 h-4 text-sky-600"></i> Restaurar desde Archivo JSON
         </h4>
-        <p class="text-slate-500 mb-3">Selecciona un archivo JSON previamente exportado para restaurar la información en este navegador.</p>
+        <p class="text-slate-500 mb-3 text-[11px]">Selecciona un archivo JSON previamente exportado para restaurar la información en este navegador.</p>
         <input type="file" id="import-json-file" accept=".json" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 mb-3 cursor-pointer">
         <button onclick="App.importBackupJSON()" class="w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg transition shadow flex items-center justify-center gap-2">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i> Cargar e Importar Datos
@@ -4129,15 +4164,242 @@ Dojo de Karate - Municipalidad de La Reina`;
         }
       },
 
-      // 5. Exportaciones y Respaldos
-      exportStudentsCSV() {
-        let csv = 'ID,Nombre,RUT,Grado,Telefono,Email,ValorMensual,DiaCorte,FechaIngreso,Estado,DeudaHistoricaArrastrada,DeudaAnioActivo,DeudaTotal\n';
+      // 5. Exportaciones, Respaldos e Intercambio de Nómina con Profesor
+      exportStudentsSpreadsheet() {
+        const headers = [
+          'ID',
+          'Nombre',
+          'RUT',
+          'Grado',
+          'Telefono',
+          'Email',
+          'ValorMensual',
+          'DiaCorte',
+          'FechaIngreso',
+          'Estado',
+          'Observaciones',
+          'DeudaHistoricaArrastrada',
+          'DeudaAnioActivo',
+          'DeudaTotal'
+        ];
+
+        let csv = '\uFEFF' + headers.join(',') + '\n';
         this.db.students.forEach(s => {
           const st = this.getStudentFinancialStatus(s);
-          csv += `"${s.id}","${s.name}","${s.rut}","${s.grade}","${s.phone}","${s.email || ''}",${s.monthlyFee},${s.dueDay},"${s.startDate || ''}","${s.status}",${st.historicalDebt},${st.currentYearDebt},${st.totalDebt}\n`;
+          const row = [
+            s.id || '',
+            s.name || '',
+            s.rut || '',
+            s.grade || '',
+            s.phone || '',
+            s.email || '',
+            s.monthlyFee || 0,
+            s.dueDay || 5,
+            s.startDate || '',
+            s.status || 'activo',
+            (s.notes || '').replace(/"/g, '""'),
+            st.historicalDebt || 0,
+            st.currentYearDebt || 0,
+            st.totalDebt || 0
+          ];
+          csv += row.map(val => (typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val)).join(',') + '\n';
         });
 
-        this.triggerDownload(csv, `alumnos_dojo_la_reina_${this.selectedYear}_${this.selectedMonth}.csv`, 'text/csv;charset=utf-8;');
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10);
+        this.triggerDownload(csv, `nomina_alumnos_dojo_karate_${dateStr}.csv`, 'text/csv;charset=utf-8;');
+        return csv;
+      },
+
+      exportStudentsCSV() {
+        return this.exportStudentsSpreadsheet();
+      },
+
+      parseCSV(text) {
+        if (!text || typeof text !== 'string') return [];
+        // Remover UTF-8 BOM si está presente
+        if (text.charCodeAt(0) === 0xFEFF) {
+          text = text.slice(1);
+        }
+
+        const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim().length > 0);
+        if (lines.length < 2) return [];
+
+        const firstLine = lines[0];
+        const countComma = (firstLine.match(/,/g) || []).length;
+        const countSemi = (firstLine.match(/;/g) || []).length;
+        const countTab = (firstLine.match(/\t/g) || []).length;
+        let delimiter = ',';
+        if (countSemi > countComma && countSemi >= countTab) delimiter = ';';
+        else if (countTab > countComma && countTab > countSemi) delimiter = '\t';
+
+        const parseLine = (line) => {
+          const values = [];
+          let current = '';
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === delimiter && !inQuotes) {
+              values.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          values.push(current.trim());
+          return values;
+        };
+
+        const rawHeaders = parseLine(lines[0]);
+        const headers = rawHeaders.map(h => {
+          return h.replace(/^["']|["']$/g, '')
+            .toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, '');
+        });
+
+        const records = [];
+        for (let i = 1; i < lines.length; i++) {
+          const rawValues = parseLine(lines[i]);
+          if (rawValues.length === 1 && rawValues[0] === '') continue;
+          const record = {};
+          headers.forEach((h, idx) => {
+            let val = rawValues[idx] !== undefined ? rawValues[idx] : '';
+            if (typeof val === 'string') {
+              val = val.replace(/^["']|["']$/g, '').trim();
+            }
+            record[h] = val;
+          });
+          records.push(record);
+        }
+        return records;
+      },
+
+      processSpreadsheetData(csvText) {
+        const records = this.parseCSV(csvText);
+        if (!records || records.length === 0) {
+          if (typeof alert === 'function') {
+            alert('No se encontraron registros válidos en la hoja de cálculo seleccionada.');
+          }
+          return { processed: 0, created: 0, updated: 0 };
+        }
+
+        let createdCount = 0;
+        let updatedCount = 0;
+
+        records.forEach(rec => {
+          const id = rec['id'] || rec['codigo'] || rec['idalumno'] || '';
+          const name = rec['nombre'] || rec['nombrecompleto'] || rec['alumno'] || rec['atleta'] || '';
+          const rut = rec['rut'] || rec['run'] || rec['identificacion'] || '';
+          const grade = rec['grado'] || rec['cinturon'] || rec['gradokyudan'] || '10° Kyu (Blanco)';
+          const phone = rec['telefono'] || rec['whatsapp'] || rec['celular'] || '';
+          const email = rec['email'] || rec['correo'] || rec['correoelectronico'] || '';
+
+          let rawFee = rec['valormensual'] || rec['cuota'] || rec['cuotamensual'] || rec['monto'] || '';
+          let fee = rawFee !== '' ? Number(String(rawFee).replace(/[^0-9]/g, '')) : NaN;
+          if (isNaN(fee)) fee = 35000;
+
+          let rawDue = rec['diacorte'] || rec['diavencimiento'] || rec['vencimiento'] || rec['dia'] || '';
+          let dueDay = parseInt(rawDue, 10);
+          if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) dueDay = 5;
+
+          const startDate = rec['fechaingreso'] || rec['ingreso'] || rec['fecha'] || new Date().toISOString().slice(0, 10);
+
+          let rawStatus = (rec['estado'] || rec['situacion'] || 'activo').toLowerCase();
+          let status = 'activo';
+          if (rawStatus.includes('beca')) status = 'becado';
+          else if (rawStatus.includes('inac')) status = 'inactivo';
+
+          const notes = rec['observaciones'] || rec['observacion'] || rec['notas'] || '';
+
+          if (!name && !rut && !id) return;
+
+          const cleanRut = rut ? rut.replace(/[^0-9kK]/g, '').toUpperCase() : '';
+
+          const existing = this.db.students.find(s => {
+            if (id && s.id === id) return true;
+            if (cleanRut && s.rut && s.rut.replace(/[^0-9kK]/g, '').toUpperCase() === cleanRut) return true;
+            return false;
+          });
+
+          if (existing) {
+            if (name) existing.name = name;
+            if (rut) existing.rut = rut;
+            if (grade) existing.grade = grade;
+            if (phone !== undefined) existing.phone = phone;
+            if (email !== undefined) existing.email = email;
+            if (rawFee !== '') existing.monthlyFee = fee;
+            if (rawDue !== '') existing.dueDay = dueDay;
+            if (startDate) existing.startDate = startDate;
+            if (rawStatus) existing.status = status;
+            if (notes) existing.notes = notes;
+
+            this.db.transactions.forEach(t => {
+              if (t.studentId === existing.id) t.beneficiary = existing.name;
+            });
+            updatedCount++;
+          } else {
+            const newId = id || ('ALU-' + String(this.db.students.length + 1).padStart(3, '0') + '-' + Date.now().toString().slice(-4));
+            const newStudent = {
+              id: newId,
+              name: name || 'Nuevo Alumno',
+              rut: rut || 'S/RUT',
+              grade,
+              phone,
+              email,
+              monthlyFee: fee,
+              dueDay,
+              startDate,
+              status,
+              notes
+            };
+            this.db.students.push(newStudent);
+            createdCount++;
+          }
+        });
+
+        this.saveDatabase();
+        this.renderAll();
+
+        const summaryMsg = `¡Nómina de alumnos procesada con éxito!\n• Total registros leídos: ${records.length}\n• Alumnos nuevos agregados: ${createdCount}\n• Alumnos existentes actualizados: ${updatedCount}`;
+        if (typeof alert === 'function') {
+          alert(summaryMsg);
+        }
+        return { processed: records.length, created: createdCount, updated: updatedCount };
+      },
+
+      importStudentsSpreadsheet(inputOrText) {
+        if (typeof inputOrText === 'string') {
+          return this.processSpreadsheetData(inputOrText);
+        }
+
+        const fileInput = (inputOrText && inputOrText.files)
+          ? inputOrText
+          : (typeof document !== 'undefined' ? document.getElementById('import-spreadsheet-file') : null);
+
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+          if (typeof alert === 'function') {
+            alert('Por favor selecciona un archivo de hoja de cálculo (.csv) para importar.');
+          }
+          return;
+        }
+
+        const file = fileInput.files[0];
+        if (typeof FileReader !== 'undefined') {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            this.processSpreadsheetData(e.target.result);
+            if (fileInput) fileInput.value = '';
+          };
+          reader.readAsText(file);
+        }
       },
 
       exportJournalCSV() {
@@ -4188,6 +4450,7 @@ Dojo de Karate - Municipalidad de La Reina`;
       },
 
       triggerDownload(content, filename, mimeType) {
+        if (typeof document === 'undefined' || typeof document.createElement !== 'function' || typeof Blob === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL) return;
         const blob = new Blob([content], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

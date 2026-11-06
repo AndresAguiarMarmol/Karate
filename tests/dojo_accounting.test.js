@@ -684,3 +684,81 @@ test('dispatchBatchIndividualEmails emite correos individuales para cada miembro
   assert.ok(draft2.body.includes('Concepto 2 (Aporte Adicional Fondo de Reserva 10%): $4.500'));
   assert.ok(draft2.body.includes('TOTAL A PAGAR DEL PERÍODO: $49.500'));
 });
+
+test('exportStudentsSpreadsheet genera archivo CSV con UTF-8 BOM, encabezados y datos completos de alumnos', () => {
+  App.db = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
+  App.db.students = [
+    {
+      id: 'ALU-EXP-01',
+      name: 'José Pérez García',
+      rut: '15.222.333-4',
+      grade: 'Cinturón Café (4° Kyu)',
+      phone: '+56911223344',
+      email: 'jose.perez@karate.cl',
+      monthlyFee: 40000,
+      dueDay: 5,
+      startDate: '2026-01-10',
+      status: 'activo',
+      notes: 'Competidor kata'
+    }
+  ];
+
+  const csv = App.exportStudentsSpreadsheet();
+  assert.ok(csv.startsWith('\uFEFF'), 'Debe incluir el prefijo UTF-8 BOM para compatibilidad con Excel');
+  assert.ok(csv.includes('ID,Nombre,RUT,Grado,Telefono,Email,ValorMensual,DiaCorte,FechaIngreso,Estado,Observaciones'));
+  assert.ok(csv.includes('José Pérez García'));
+  assert.ok(csv.includes('15.222.333-4'));
+  assert.ok(csv.includes('Cinturón Café (4° Kyu)'));
+  assert.ok(csv.includes('Competidor kata'));
+  assert.ok(csv.includes('40000'));
+});
+
+test('importStudentsSpreadsheet procesa hojas de cálculo con auto-detección de delimitadores y upsert de alumnos', () => {
+  App.db = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
+  App.db.students = [
+    {
+      id: 'ALU-EXIST-01',
+      name: 'Alumno Antiguo',
+      rut: '12.345.678-9',
+      grade: 'Cinturón Blanco',
+      phone: '+56911111111',
+      email: 'antiguo@karate.cl',
+      monthlyFee: 30000,
+      dueDay: 5,
+      startDate: '2025-01-01',
+      status: 'activo',
+      notes: 'Nota previa'
+    }
+  ];
+
+  // CSV con punto y coma (formato típico de Excel en Chile/Latam)
+  const csvDataSemicolon = [
+    'ID;Nombre;RUT;Grado;Telefono;Email;ValorMensual;DiaCorte;FechaIngreso;Estado;Observaciones',
+    'ALU-EXIST-01;Alumno Antiguo Actualizado;12.345.678-9;Cinturón Amarillo (9° Kyu);+56999999999;nuevo_email@karate.cl;$38.000;10;2025-01-01;activo;Ascendido a amarillo',
+    ';Nuevo Karateca;19.888.777-6;Cinturón Naranjo;+56988887777;nuevo@karate.cl;45000;15;2026-03-01;becado;Beca municipal 2026'
+  ].join('\n');
+
+  const result = App.importStudentsSpreadsheet(csvDataSemicolon);
+
+  assert.strictEqual(result.processed, 2);
+  assert.strictEqual(result.updated, 1);
+  assert.strictEqual(result.created, 1);
+
+  // Verificar que el alumno existente fue actualizado correctamente
+  const updatedStudent = App.db.students.find(s => s.id === 'ALU-EXIST-01');
+  assert.ok(updatedStudent);
+  assert.strictEqual(updatedStudent.name, 'Alumno Antiguo Actualizado');
+  assert.strictEqual(updatedStudent.grade, 'Cinturón Amarillo (9° Kyu)');
+  assert.strictEqual(updatedStudent.email, 'nuevo_email@karate.cl');
+  assert.strictEqual(updatedStudent.monthlyFee, 38000);
+  assert.strictEqual(updatedStudent.dueDay, 10);
+  assert.strictEqual(updatedStudent.notes, 'Ascendido a amarillo');
+
+  // Verificar que el nuevo alumno fue creado
+  const newStudent = App.db.students.find(s => s.name === 'Nuevo Karateca');
+  assert.ok(newStudent);
+  assert.strictEqual(newStudent.rut, '19.888.777-6');
+  assert.strictEqual(newStudent.status, 'becado');
+  assert.strictEqual(newStudent.monthlyFee, 45000);
+  assert.ok(newStudent.id.startsWith('ALU-'));
+});

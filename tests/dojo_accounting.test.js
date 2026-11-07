@@ -822,3 +822,93 @@ test('Selección automática del mes y año actual en el período al inicializar
   // 3. Verificar que en el HTML no quede <option value="03" selected>Marzo</option>
   assert.ok(!html.includes('value="03" selected'), 'Marzo no debe tener selected cableado en el HTML');
 });
+
+test('normalizeDateToISO normaliza fechas en formato latino e ISO a YYYY-MM-DD (SPEC-007)', () => {
+  assert.strictEqual(App.normalizeDateToISO('01-11-2026'), '2026-11-01');
+  assert.strictEqual(App.normalizeDateToISO('1-11-2026'), '2026-11-01');
+  assert.strictEqual(App.normalizeDateToISO('15/03/2025'), '2025-03-15');
+  assert.strictEqual(App.normalizeDateToISO('2026-11-01'), '2026-11-01');
+  assert.strictEqual(App.normalizeDateToISO('2026-11'), '2026-11-01');
+  assert.strictEqual(App.normalizeDateToISO('11-2026'), '2026-11-01');
+  assert.strictEqual(App.normalizeDateToISO('', '2026-11-01'), '2026-11-01');
+});
+
+test('parseCurrencyNumber parsea montos chilenos con punto de miles y enteros (SPEC-007)', () => {
+  assert.strictEqual(App.parseCurrencyNumber('20.000'), 20000);
+  assert.strictEqual(App.parseCurrencyNumber('55.000'), 55000);
+  assert.strictEqual(App.parseCurrencyNumber('$40.000'), 40000);
+  assert.strictEqual(App.parseCurrencyNumber('20000'), 20000);
+  assert.strictEqual(App.parseCurrencyNumber(35000), 35000);
+  assert.strictEqual(App.parseCurrencyNumber(0), 0);
+  assert.strictEqual(App.parseCurrencyNumber(''), 0);
+});
+
+test('Alumnos ingresados en noviembre de este año tienen $0 de deuda arrastrada histórica (SPEC-007)', () => {
+  App.db = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
+  App.selectedYear = '2026';
+  App.selectedMonth = '11';
+
+  // Alumno con fecha formato latino 01-11-2026 y cuota < 60000
+  const alumnoLatam = {
+    id: 'ALU-NOV-01',
+    name: 'Christian Cárdenas',
+    rut: '27352706-0',
+    monthlyFee: 20000,
+    dueDay: 1,
+    startDate: '01-11-2026',
+    status: 'activo'
+  };
+
+  // Alumno con fecha ISO 2026-11-01 y cuota < 60000
+  const alumnoIso = {
+    id: 'ALU-NOV-02',
+    name: 'Matteo Ortiz',
+    rut: '28958282-7',
+    monthlyFee: 55000,
+    dueDay: 1,
+    startDate: '2026-11-01',
+    status: 'activo'
+  };
+
+  App.db.students = [alumnoLatam, alumnoIso];
+
+  const st1 = App.getStudentFinancialStatus(alumnoLatam, '2026', '11');
+  assert.strictEqual(st1.historicalDebt, 0, 'La deuda histórica arrastrada de años anteriores debe ser exactamente $0');
+  assert.strictEqual(st1.historicalMonths.length, 0, 'No debe tener meses históricos adeudados');
+  assert.strictEqual(st1.currentYearDebt, 20000, 'Solo debe adeudar el mes de ingreso (noviembre)');
+  assert.strictEqual(st1.totalDebt, 20000, 'La deuda total debe ser exactamente $20.000');
+  assert.deepStrictEqual(st1.currentYearUnpaidMonths, ['2026-11'], 'El único mes adeudado del año debe ser noviembre');
+
+  const st2 = App.getStudentFinancialStatus(alumnoIso, '2026', '11');
+  assert.strictEqual(st2.historicalDebt, 0, 'La deuda histórica arrastrada debe ser $0');
+  assert.strictEqual(st2.historicalMonths.length, 0);
+  assert.strictEqual(st2.currentYearDebt, 55000);
+  assert.strictEqual(st2.totalDebt, 55000);
+  assert.deepStrictEqual(st2.currentYearUnpaidMonths, ['2026-11']);
+});
+
+test('Importación de nómina con fechas latinas asigna $0 de deuda histórica arrastrada (SPEC-007)', () => {
+  App.db = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
+  App.selectedYear = '2026';
+  App.selectedMonth = '11';
+
+  const csvContent = [
+    'ID;Nombre;RUT;Grado;Telefono;Email;ValorMensual;DiaCorte;FechaIngreso;Estado;Observaciones',
+    'ALU-01;Atleta Uno;11.111.111-1;Cinturón Amarillo;+56911111111;atleta1@dojo.cl;20.000;1;01-11-2026;Activo;Apoderado Uno',
+    'ALU-02;Atleta Dos;22.222.222-2;Cinturón Naranjo;+56922222222;atleta2@dojo.cl;55.000;1;01/11/2026;Activo;Apoderado Dos',
+    'ALU-03;Atleta Tres;33.333.333-3;2do. Dan;;atleta3@dojo.cl;0;1;01-11-2026;Activo;Sensei'
+  ].join('\n');
+
+  const res = App.importStudentsSpreadsheet(csvContent);
+  assert.strictEqual(res.processed, 3);
+
+  let totalHist = 0;
+  App.db.students.forEach(s => {
+    assert.strictEqual(s.startDate, '2026-11-01', 'La fecha debe quedar estandarizada en YYYY-MM-DD');
+    assert.ok(s.monthlyFee < 60000, 'La mensualidad debe ser menor a 60.000 CLP');
+    const st = App.getStudentFinancialStatus(s, '2026', '11');
+    totalHist += st.historicalDebt;
+  });
+
+  assert.strictEqual(totalHist, 0, 'El total de deuda histórica arrastrada debe ser exactamente $0');
+});

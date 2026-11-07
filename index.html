@@ -1532,6 +1532,65 @@
         }
       },
 
+      // Normaliza fechas en formatos DD-MM-YYYY, DD/MM/YYYY o ISO a YYYY-MM-DD
+      normalizeDateToISO(dateStr, fallbackISO = null) {
+        if (!dateStr || typeof dateStr !== 'string') {
+          return fallbackISO || new Date().toISOString().slice(0, 10);
+        }
+        const clean = dateStr.trim();
+        // 1. Formato DD-MM-YYYY o DD/MM/YYYY (ej: 01-11-2026, 1/11/2026)
+        const mLatam = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (mLatam) {
+          const day = String(mLatam[1]).padStart(2, '0');
+          const month = String(mLatam[2]).padStart(2, '0');
+          const year = mLatam[3];
+          return `${year}-${month}-${day}`;
+        }
+        // 2. Formato YYYY-MM-DD o YYYY/MM/DD (ej: 2026-11-01)
+        const mIso = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+        if (mIso) {
+          const year = mIso[1];
+          const month = String(mIso[2]).padStart(2, '0');
+          const day = String(mIso[3]).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        }
+        // 3. Formato YYYY-MM (ej: 2026-11)
+        const mYearMonth = clean.match(/^(\d{4})[-/](\d{1,2})$/);
+        if (mYearMonth) {
+          const year = mYearMonth[1];
+          const month = String(mYearMonth[2]).padStart(2, '0');
+          return `${year}-${month}-01`;
+        }
+        // 4. Formato MM-YYYY (ej: 11-2026)
+        const mMonthYear = clean.match(/^(\d{1,2})[-/](\d{4})$/);
+        if (mMonthYear) {
+          const month = String(mMonthYear[1]).padStart(2, '0');
+          const year = mMonthYear[2];
+          return `${year}-${month}-01`;
+        }
+        const d = new Date(clean);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().slice(0, 10);
+        }
+        return fallbackISO || new Date().toISOString().slice(0, 10);
+      },
+
+      // Parseo seguro de cuotas con separadores de miles y moneda
+      parseCurrencyNumber(val, defaultVal = 0) {
+        if (val === undefined || val === null || val === '') return defaultVal;
+        if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
+        let str = String(val).trim();
+        if (/^\$?\s*\d{1,3}(\.\d{3})*(,\d+)?$/.test(str)) {
+          str = str.replace(/\$/g, '').replace(/\./g, '').replace(',', '.');
+        } else if (/^\$?\s*\d{1,3}(,\d{3})*(\.\d+)?$/.test(str)) {
+          str = str.replace(/\$/g, '').replace(/,/g, '');
+        } else {
+          str = str.replace(/[^0-9.-]/g, '');
+        }
+        const num = parseFloat(str);
+        return isNaN(num) ? defaultVal : Math.round(num);
+      },
+
       loadDatabase() {
         // Limpiar remanentes de versiones anteriores (v1, v2)
         localStorage.removeItem('dojo_karate_la_reina_db_v1');
@@ -1554,6 +1613,22 @@
             if (!this.db.accounts || this.db.accounts.length === 0) {
               this.db.accounts = JSON.parse(JSON.stringify(INITIAL_SEED_DATA.accounts));
               this.saveDatabase();
+            }
+            // Saneamiento de datos de alumnos existentes (normalizar fechas de ingreso a YYYY-MM-DD)
+            if (Array.isArray(this.db.students)) {
+              let modified = false;
+              this.db.students.forEach(s => {
+                if (s.startDate) {
+                  const normalized = this.normalizeDateToISO(s.startDate);
+                  if (normalized !== s.startDate) {
+                    s.startDate = normalized;
+                    modified = true;
+                  }
+                }
+              });
+              if (modified) {
+                this.saveDatabase();
+              }
             }
           } catch (e) {
             console.error('Error parseando base de datos local, recargando estructura limpia:', e);
@@ -1791,8 +1866,9 @@
         );
 
         // Generar lista de meses exigibles desde startDate hasta targetYear-targetMonth
-        const startY = student.startDate ? parseInt(student.startDate.slice(0, 4), 10) : parseInt(targetYear, 10);
-        const startM = student.startDate ? parseInt(student.startDate.slice(5, 7), 10) : 1;
+        const isoStart = this.normalizeDateToISO(student.startDate, `${targetYear}-${targetMonth}-01`);
+        const startY = parseInt(isoStart.slice(0, 4), 10);
+        const startM = parseInt(isoStart.slice(5, 7), 10);
         const curY = parseInt(targetYear, 10);
         const curM = parseInt(targetMonth, 10);
 
@@ -2609,7 +2685,7 @@
             document.getElementById('stud-email').value = student.email || '';
             document.getElementById('stud-fee').value = student.monthlyFee;
             document.getElementById('stud-dueday').value = student.dueDay;
-            document.getElementById('stud-startdate').value = student.startDate || '';
+            document.getElementById('stud-startdate').value = this.normalizeDateToISO(student.startDate || '', new Date().toISOString().slice(0, 10));
             document.getElementById('stud-status').value = student.status;
             document.getElementById('stud-notes').value = student.notes || '';
           }
@@ -2634,7 +2710,8 @@
         const email = document.getElementById('stud-email').value.trim();
         const fee = Number(document.getElementById('stud-fee').value);
         const dueDay = Number(document.getElementById('stud-dueday').value);
-        const startDate = document.getElementById('stud-startdate').value;
+        const rawStartDate = document.getElementById('stud-startdate').value;
+        const startDate = this.normalizeDateToISO(rawStartDate, new Date().toISOString().slice(0, 10));
         const status = document.getElementById('stud-status').value;
         const notes = document.getElementById('stud-notes').value.trim();
 
@@ -4333,14 +4410,14 @@ Dojo de Karate - Municipalidad de La Reina`;
           const email = rec['email'] || rec['correo'] || rec['correoelectronico'] || '';
 
           let rawFee = rec['valormensual'] || rec['cuota'] || rec['cuotamensual'] || rec['monto'] || '';
-          let fee = rawFee !== '' ? Number(String(rawFee).replace(/[^0-9]/g, '')) : NaN;
-          if (isNaN(fee)) fee = 35000;
+          let fee = rawFee !== '' ? this.parseCurrencyNumber(rawFee, 35000) : 35000;
 
           let rawDue = rec['diacorte'] || rec['diavencimiento'] || rec['vencimiento'] || rec['dia'] || '';
           let dueDay = parseInt(rawDue, 10);
           if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) dueDay = 5;
 
-          const startDate = rec['fechaingreso'] || rec['ingreso'] || rec['fecha'] || new Date().toISOString().slice(0, 10);
+          const rawStartDate = rec['fechaingreso'] || rec['ingreso'] || rec['fecha'] || '';
+          const startDate = this.normalizeDateToISO(rawStartDate, '2026-11-01');
 
           let rawStatus = (rec['estado'] || rec['situacion'] || 'activo').toLowerCase();
           let status = 'activo';

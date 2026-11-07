@@ -72,6 +72,10 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
   - Al iniciar o recargar la aplicación (`App.init()`), la rutina `setupSelects()` determina dinámicamente el año (`now.getFullYear()`) y el mes en curso (`String(now.getMonth() + 1).padStart(2, '0')`), asignándolos como estado activo inicial (`App.selectedYear` y `App.selectedMonth`) y sincronizando los selectores `#select-year` y `#select-month`.
   - Se eliminan los valores fijos cableados (`selected` en Marzo en el HTML).
   - El usuario preserva plena libertad para alternar manualmente de mes o año durante la sesión.
+- **Normalización de Fechas de Ingreso y Cálculo Fidedigno de Deuda Arrastrada (SPEC-007):**
+  - Todas las fechas de ingreso (`startDate`) son normalizadas a formato ISO `YYYY-MM-DD` mediante `App.normalizeDateToISO()`, admitiendo de forma resiliente entradas en formato chileno/latino (`DD-MM-YYYY`, `DD/MM/YYYY`) provenientes de planillas CSV/Excel o formularios.
+  - Al evaluar el estado financiero en `App.getStudentFinancialStatus()`, los meses exigibles se calculan estrictamente a partir del año y mes real de ingreso. Para alumnos incorporados en noviembre de 2026, la deuda histórica arrastrada de años previos es exactamente `$0`, sin generar falsos cargos de meses anteriores al ingreso ni categorizaciones erróneas de morosidad.
+  - Se añade saneamiento automático en `App.loadDatabase()` para corregir de forma transparente fechas no normalizadas en bases locales existentes.
 - **Aislamiento Estricto y Ocultamiento de Modales Nativos (`<dialog>`):**
   - Se añade la regla CSS imperativa `dialog:not([open]) { display: none !important; }` en el `<style>` global.
   - Ninguna etiqueta nativa `<dialog>` debe llevar clases utilitarias de display de Tailwind (como `flex`, `grid` o `inline`) para evitar que el motor de CSS de autor prevalezca sobre la regla de ocultamiento del agente de usuario.
@@ -85,6 +89,12 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-07: Corrección de cálculo de deuda arrastrada y normalización multiformato de fechas (SPEC-007)
+- Corregida la anomalía contable que causaba que fechas en formato latino (`01-11-2026`) fueran interpretadas desde el año 1 d.C., generando cientos de millones de pesos en deudas históricas inexistentes.
+- Implementada la función `App.normalizeDateToISO()` y `App.parseCurrencyNumber()`, estandarizando fechas a `YYYY-MM-DD` y cuotas con formato de miles a enteros en `loadDatabase`, `getStudentFinancialStatus` y `processSpreadsheetData`.
+- Verificado que los 26 alumnos ingresados en noviembre de 2026 con mensualidades menores a $60.000 CLP mantengan exactamente $0 de deuda arrastrada histórica y solo computen su cuota de noviembre.
+- Añadidas pruebas unitarias 27 a 30 en `tests/dojo_accounting.test.js` (44/44 pruebas aprobadas).
 
 ### 2026-11-06: Selección automática del mes actual en el selector de período (SPEC-006)
 - Se eliminó el valor cableado estático (`Marzo / 03`) en `#select-month` y en la definición de `App`.

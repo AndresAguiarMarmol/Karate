@@ -1,6 +1,8 @@
 # Archivos de datos locales y pruebas de usuario
 *.xlsx
 nomina_alumnos_*.csv
+BD *
+respaldo_completo_*.json
 cobranza_mensual_*.txt
 .DS_Store
 Thumbs.db

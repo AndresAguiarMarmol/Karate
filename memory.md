@@ -68,6 +68,12 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
   - **Exportación con UTF-8 BOM (`exportStudentsSpreadsheet`):** Descarga la nómina completa en CSV incluyendo el prefijo `\uFEFF` para apertura transparente en Microsoft Excel y Google Sheets con soporte nativo de caracteres en español (tildes, eñes), conteniendo campos personales, contractuales, observaciones y desglose de deudas.
   - **Importación Inteligente con Upsert (`importStudentsSpreadsheet`):** Procesa archivos CSV con detección automática de delimitador (`,`, `;` o tabulador) y normalización de encabezados. Realiza *upsert*: si el alumno ya existe por ID o RUT, actualiza sus datos básicos sin borrar ni alterar sus movimientos contables previos; si es nuevo, lo incorpora asignando ID correlativo.
   - **Ubicación Integrada:** Dispone de 2 botones dedicados (`Exportar Hoja de Cálculo` e `Importar Hoja de Cálculo`) ubicados en el modal de respaldo y recuperación (`modal-backup`) y en la cabecera de Alumnos & Mensualidades.
+- **Validación de Pagos y Bloqueo de Cobros a Clientes Solventes (SPEC-008):**
+  - Se restringe la apertura del modal de pagos (`openPaymentModal`) para alumnos que se encuentran totalmente solventes (`totalDebt === 0` y sin cuotas impagas) o con condición de Becados (`monthlyFee === 0`), desplegando una alerta informativa amigable que confirma su condición al día y evitando la apertura del formulario de cobro.
+  - Se elimina la inyección forzada del mes activo en el selector de períodos a pagar (`#pay-period`), poblando únicamente las cuotas efectivamente adeudadas y exigibles.
+  - En la recepción del pago (`handlePaymentSubmit`), se incorporan validaciones defensivas que rechazan la operación si el alumno es becado, si el período ya cuenta con un pago de mensualidad registrado (evitando duplicidades accidentales), o si el período no forma parte de las cuotas exigibles del alumno.
+  - En la grilla de alumnos (`renderStudentsGrid`), los alumnos solventes muestran una insignia interactiva `[✅ Al Día]` en lugar de la invitación a pagar.
+  - En la ficha detallada del alumno (`openStudentDetailModal`), los meses del año activo anteriores a la fecha de ingreso (`startDate`) se clasifican como `PREVIO` e informan `Previo al ingreso` sin botón de cobro; los meses futuros no devengados figuran como `FUTURO` / `Por devengar`, y los becados figuran como `EXENTO` / `Becado ($0)`.
 - **Selección Automática del Mes y Año Actual en el Período (SPEC-006):**
   - Al iniciar o recargar la aplicación (`App.init()`), la rutina `setupSelects()` determina dinámicamente el año (`now.getFullYear()`) y el mes en curso (`String(now.getMonth() + 1).padStart(2, '0')`), asignándolos como estado activo inicial (`App.selectedYear` y `App.selectedMonth`) y sincronizando los selectores `#select-year` y `#select-month`.
   - Se eliminan los valores fijos cableados (`selected` en Marzo en el HTML).
@@ -89,6 +95,13 @@ Decisiones ya tomadas que deben respetarse salvo indicación explícita del usua
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-07: Validación de pagos y rechazo de cobros duplicados en alumnos solventes (SPEC-008)
+- Implementada la validación estricta en `openPaymentModal` y `handlePaymentSubmit` que impide abrir pagos o registrar cobros de mensualidad sobre alumnos solventes o para períodos ya saldados.
+- Corregida la inyección forzada del mes en curso en el selector de cuotas `#pay-period`, impidiendo que aparezca como opción cuando ya fue cancelado.
+- Actualizada la grilla de alumnos (`renderStudentsGrid`) con el botón `[✅ Al Día]` para miembros sin deudas pendientes.
+- Adaptada la grilla de 12 meses de la ficha del alumno (`openStudentDetailModal`) para clasificar meses previos al ingreso como `PREVIO` y meses no devengados como `FUTURO`, eliminando botones espurios de cobro.
+- Añadidas las pruebas unitarias 31 a 33 en `tests/dojo_accounting.test.js` cubriendo bloqueo de becados, bloqueo de alumnos solventes, rechazo de pagos duplicados y procesamiento legítimo de períodos exigibles (47/47 pruebas aprobadas en el repositorio).
 
 ### 2026-11-07: Corrección de cálculo de deuda arrastrada y normalización multiformato de fechas (SPEC-007)
 - Corregida la anomalía contable que causaba que fechas en formato latino (`01-11-2026`) fueran interpretadas desde el año 1 d.C., generando cientos de millones de pesos en deudas históricas inexistentes.

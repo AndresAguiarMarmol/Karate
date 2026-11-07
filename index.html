@@ -2304,9 +2304,14 @@
               <button onclick="App.openEmailBillingModal('${student.id}')" title="Enviar aviso de cobranza por correo electrónico" class="px-1.5 py-1.5 border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
                 <i data-lucide="mail" class="w-3.5 h-3.5 text-sky-600"></i> Email
               </button>
-              <button onclick="App.openPaymentModal('${student.id}')" title="Registrar pago de mensualidad" class="px-1.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
-                <i data-lucide="credit-card" class="w-3.5 h-3.5"></i> Pagar
-              </button>
+              ${st.status === 'aldia' || st.totalDebt === 0
+                ? `<button onclick="App.openPaymentModal('${student.id}')" title="Alumno solvente: sin deudas pendientes" class="px-1.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-sm border border-emerald-300">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-600"></i> Al Día
+                  </button>`
+                : `<button onclick="App.openPaymentModal('${student.id}')" title="Registrar pago de mensualidad" class="px-1.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
+                    <i data-lucide="credit-card" class="w-3.5 h-3.5"></i> Pagar
+                  </button>`
+              }
             </div>
           `;
           container.appendChild(card);
@@ -2751,7 +2756,21 @@
         const student = this.db.students.find(s => s.id === studentId);
         if (!student) return;
 
+        // Bloqueo 1: Alumno becado / cuota $0
+        if (student.status === 'becado' || Number(student.monthlyFee || 0) === 0) {
+          alert(`El alumno/a ${student.name} tiene condición de Becado (cuota $0) y se encuentra solvente. No requiere registro de pagos.`);
+          return;
+        }
+
         const st = this.getStudentFinancialStatus(student);
+
+        // Bloqueo 2: Alumno al día / solvente sin deudas
+        const unpaidMonths = [...st.historicalMonths, ...st.currentYearUnpaidMonths].sort();
+        if (st.totalDebt === 0 || unpaidMonths.length === 0) {
+          alert(`El alumno/a ${student.name} se encuentra totalmente al día y solvente. No registra cuotas pendientes por pagar.`);
+          return;
+        }
+
         document.getElementById('pay-student-id').value = student.id;
         document.getElementById('pay-student-name').textContent = `${student.name} (${student.grade})`;
         document.getElementById('pay-student-debt-summary').textContent = st.totalDebt > 0
@@ -2779,14 +2798,6 @@
         const periodSelect = document.getElementById('pay-period');
         periodSelect.innerHTML = '';
 
-        // Combinar meses históricos impagos + meses año actual
-        const unpaidMonths = [...st.historicalMonths, ...st.currentYearUnpaidMonths];
-        const activeMonth = `${this.selectedYear}-${this.selectedMonth}`;
-        if (!unpaidMonths.includes(activeMonth)) {
-          unpaidMonths.push(activeMonth);
-        }
-        unpaidMonths.sort();
-
         unpaidMonths.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p;
@@ -2799,11 +2810,8 @@
 
         if (defaultPeriod && unpaidMonths.includes(defaultPeriod)) {
           periodSelect.value = defaultPeriod;
-        } else if (st.historicalMonths.length > 0) {
-          // Sugerir primero el mes más antiguo adeudado
-          periodSelect.value = st.historicalMonths[0];
-        } else {
-          periodSelect.value = activeMonth;
+        } else if (unpaidMonths.length > 0) {
+          periodSelect.value = unpaidMonths[0];
         }
 
         this.updatePaymentTotals();
@@ -2865,6 +2873,12 @@
         const student = this.db.students.find(s => s.id === studentId);
         if (!student) return;
 
+        // Validación 1: Alumno becado / cuota $0
+        if (student.status === 'becado' || Number(student.monthlyFee || 0) === 0) {
+          alert(`El alumno/a ${student.name} tiene condición de Becado (cuota $0) y se encuentra solvente. No requiere registro de pagos.`);
+          return;
+        }
+
         const period = document.getElementById('pay-period').value;
         const amount = Number(document.getElementById('pay-amount').value);
         const date = document.getElementById('pay-date').value;
@@ -2878,6 +2892,31 @@
 
         if (amount <= 0 || !date) {
           alert('El monto de la cuota y la fecha son requeridos.');
+          return;
+        }
+
+        if (!period) {
+          alert('Debe seleccionar un período válido para registrar el pago.');
+          return;
+        }
+
+        // Validación 2: Período ya solventado / pagado previamente (evita duplicidad)
+        const yaPagado = this.db.transactions.some(tx =>
+          tx.type === 'ingreso' &&
+          tx.studentId === student.id &&
+          tx.period === period &&
+          tx.categoryCode !== 'fondo_reserva'
+        );
+        if (yaPagado) {
+          alert(`El período ${period} ya fue pagado previamente para el alumno/a ${student.name}. No es posible registrar pagos duplicados para períodos solventes.`);
+          return;
+        }
+
+        // Validación 3: Período debe pertenecer a cuotas adeudadas exigibles
+        const st = this.getStudentFinancialStatus(student);
+        const unpaidSet = new Set([...st.historicalMonths, ...st.currentYearUnpaidMonths]);
+        if (!unpaidSet.has(period)) {
+          alert(`El alumno/a ${student.name} se encuentra al día en el período ${period}. Solo se permite registrar pagos para cuotas pendientes.`);
           return;
         }
 
@@ -2972,27 +3011,61 @@
 
         const paidPeriods = new Set(
           this.db.transactions
-            .filter(tx => tx.type === 'ingreso' && tx.studentId === student.id && tx.period)
+            .filter(tx => tx.type === 'ingreso' && tx.studentId === student.id && tx.period && tx.categoryCode !== 'fondo_reserva')
             .map(tx => tx.period)
         );
+
+        const isoStart = this.normalizeDateToISO(student.startDate, `${this.selectedYear}-${this.selectedMonth}-01`);
+        const startPeriod = isoStart.slice(0, 7);
+        const activePeriod = `${this.selectedYear}-${this.selectedMonth}`;
+        const isBecado = student.status === 'becado' || Number(student.monthlyFee || 0) === 0;
 
         for (let m = 1; m <= 12; m++) {
           const mStr = String(m).padStart(2, '0');
           const p = `${this.selectedYear}-${mStr}`;
           const isPaid = paidPeriods.has(p);
+          const isPriorToStart = p < startPeriod;
+          const isFuture = p > activePeriod;
+
+          let badgeText = 'PENDIENTE';
+          let badgeColor = 'text-rose-600';
+          let bgClass = 'bg-rose-50/60 border-rose-200 text-rose-900';
+          let actionHtml = `
+            <button onclick="App.closeDialog('modal-student-detail'); App.openPaymentModalForMonth('${student.id}', '${p}')" class="text-[10px] font-bold text-sky-700 hover:underline text-left">
+              + Saldar cuota
+            </button>
+          `;
+
+          if (isBecado) {
+            badgeText = 'EXENTO';
+            badgeColor = 'text-emerald-700';
+            bgClass = 'bg-emerald-50 border-emerald-200 text-emerald-900';
+            actionHtml = '<span class="text-[10px] text-emerald-600 font-semibold">Becado ($0)</span>';
+          } else if (isPaid) {
+            badgeText = 'PAGADO';
+            badgeColor = 'text-emerald-700';
+            bgClass = 'bg-emerald-50 border-emerald-200 text-emerald-900';
+            actionHtml = '<span class="text-[10px] text-emerald-600 font-semibold">Al día</span>';
+          } else if (isPriorToStart) {
+            badgeText = 'PREVIO';
+            badgeColor = 'text-slate-400';
+            bgClass = 'bg-slate-100/60 border-slate-200 text-slate-500';
+            actionHtml = '<span class="text-[10px] text-slate-400 italic">Previo al ingreso</span>';
+          } else if (isFuture) {
+            badgeText = 'FUTURO';
+            badgeColor = 'text-sky-600';
+            bgClass = 'bg-white border-slate-200 text-slate-600';
+            actionHtml = '<span class="text-[10px] text-slate-400">Por devengar</span>';
+          }
 
           const cell = document.createElement('div');
-          cell.className = `p-2.5 rounded-lg border text-xs flex flex-col justify-between ${isPaid ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-700'}`;
+          cell.className = `p-2.5 rounded-lg border text-xs flex flex-col justify-between ${bgClass}`;
           cell.innerHTML = `
             <div class="flex justify-between items-center mb-1">
               <span class="font-bold">${p}</span>
-              <span class="text-[10px] font-bold ${isPaid ? 'text-emerald-700' : 'text-slate-400'}">${isPaid ? 'PAGADO' : 'PENDIENTE'}</span>
+              <span class="text-[10px] font-bold ${badgeColor}">${badgeText}</span>
             </div>
-            ${!isPaid ? `
-              <button onclick="App.closeDialog('modal-student-detail'); App.openPaymentModalForMonth('${student.id}', '${p}')" class="text-[10px] font-bold text-sky-700 hover:underline text-left">
-                + Saldar cuota
-              </button>
-            ` : '<span class="text-[10px] text-emerald-600">Al día</span>'}
+            ${actionHtml}
           `;
           yearMonthsGrid.appendChild(cell);
         }

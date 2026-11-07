@@ -3,6 +3,7 @@
 nomina_alumnos_*.csv
 BD *
 respaldo_completo_*.json
+respaldo_*.json
 cobranza_mensual_*.txt
 .DS_Store
 Thumbs.db

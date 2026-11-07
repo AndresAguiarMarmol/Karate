@@ -22,7 +22,7 @@ const sandbox = {
   Date,
   Set,
   prompt: () => '150000',
-  alert: () => {},
+  alert: (...args) => { if (sandbox.onAlert) return sandbox.onAlert(...args); },
   confirm: () => true
 };
 
@@ -911,4 +911,210 @@ test('Importación de nómina con fechas latinas asigna $0 de deuda histórica a
   });
 
   assert.strictEqual(totalHist, 0, 'El total de deuda histórica arrastrada debe ser exactamente $0');
+});
+
+test('openPaymentModal rechaza apertura para alumnos becados y solventes (SPEC-008)', () => {
+  App.db = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
+  App.selectedYear = '2026';
+  App.selectedMonth = '11';
+
+  let alertMessage = null;
+  sandbox.onAlert = (msg) => { alertMessage = msg; };
+
+  let dialogOpened = false;
+  App.openDialog = () => { dialogOpened = true; };
+
+  // 1. Alumno Becado
+  const becado = {
+    id: 'ALU-BEC-01',
+    name: 'Atleta Becado',
+    monthlyFee: 0,
+    status: 'becado',
+    startDate: '2026-11-01'
+  };
+  App.db.students.push(becado);
+
+  dialogOpened = false;
+  alertMessage = null;
+  App.openPaymentModal('ALU-BEC-01');
+
+  assert.strictEqual(dialogOpened, false, 'No debe abrir el modal de pago para alumnos becados');
+  assert.ok(alertMessage && alertMessage.includes('Becado'), 'Debe emitir alerta informativa sobre condición de Becado');
+
+  // 2. Alumno Solvente (Al Día sin deuda)
+  const solvente = {
+    id: 'ALU-SOL-01',
+    name: 'Atleta Al Dia',
+    monthlyFee: 35000,
+    dueDay: 5,
+    status: 'activo',
+    startDate: '2026-11-01'
+  };
+  App.db.students.push(solvente);
+  // Registrar pago de noviembre para dejarlo solvente
+  App.db.transactions.push({
+    id: 'TX-SOL-01',
+    type: 'ingreso',
+    studentId: 'ALU-SOL-01',
+    categoryCode: 'mensualidad',
+    period: '2026-11',
+    amount: 35000,
+    date: '2026-11-02'
+  });
+
+  const stSolvente = App.getStudentFinancialStatus(solvente, '2026', '11');
+  assert.strictEqual(stSolvente.totalDebt, 0, 'El alumno debe tener deuda $0');
+
+  dialogOpened = false;
+  alertMessage = null;
+  App.openPaymentModal('ALU-SOL-01');
+
+  assert.strictEqual(dialogOpened, false, 'No debe abrir el modal de pago para alumnos solventes sin deudas');
+  assert.ok(alertMessage && alertMessage.includes('solvente'), 'Debe emitir alerta indicando que el alumno está totalmente al día y solvente');
+
+  sandbox.onAlert = null;
+});
+
+test('handlePaymentSubmit bloquea pagos duplicados y períodos no adeudados (SPEC-008)', () => {
+  App.db = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
+  App.selectedYear = '2026';
+  App.selectedMonth = '11';
+
+  let alertMessage = null;
+  sandbox.onAlert = (msg) => { alertMessage = msg; };
+
+  // Mock elementos del DOM requeridos por handlePaymentSubmit
+  const domValues = {
+    'pay-student-id': 'ALU-PAG-01',
+    'pay-period': '2026-11',
+    'pay-amount': '35000',
+    'pay-date': '2026-11-05',
+    'pay-account': 'CTA-01',
+    'pay-method': 'transferencia',
+    'pay-ref': 'REF-123',
+    'pay-reserve-check': { checked: false },
+    'pay-reserve-amount': { value: '0' }
+  };
+
+  const originalGetElementById = sandbox.document.getElementById;
+  sandbox.document.getElementById = (id) => {
+    if (id === 'pay-reserve-check') return domValues['pay-reserve-check'];
+    if (id === 'pay-reserve-amount') return domValues['pay-reserve-amount'];
+    if (domValues[id] !== undefined) return { value: domValues[id] };
+    return null;
+  };
+
+  App.saveDatabase = () => {};
+  App.closeDialog = () => {};
+  App.renderAll = () => {};
+
+  const student = {
+    id: 'ALU-PAG-01',
+    name: 'Atleta Pagos',
+    monthlyFee: 35000,
+    status: 'activo',
+    startDate: '2026-11-01'
+  };
+  App.db.students = [student];
+
+  // Caso A: El período 2026-11 ya está pagado en la base de datos
+  App.db.transactions = [{
+    id: 'TX-EXISTING',
+    type: 'ingreso',
+    studentId: 'ALU-PAG-01',
+    categoryCode: 'mensualidad',
+    period: '2026-11',
+    amount: 35000,
+    date: '2026-11-01'
+  }];
+
+  const initialTxCount = App.db.transactions.length;
+  alertMessage = null;
+
+  App.handlePaymentSubmit({ preventDefault: () => {} });
+
+  assert.strictEqual(App.db.transactions.length, initialTxCount, 'No debe insertar transacciones duplicadas para períodos ya solventados');
+  assert.ok(alertMessage && alertMessage.includes('ya fue pagado'), 'Debe alertar que el período ya fue pagado previamente');
+
+  // Caso B: Período previo al ingreso (2026-05) que no es exigible ni adeudado
+  domValues['pay-period'] = '2026-05';
+  alertMessage = null;
+
+  App.handlePaymentSubmit({ preventDefault: () => {} });
+
+  assert.strictEqual(App.db.transactions.length, initialTxCount, 'No debe insertar transacciones para períodos no adeudados');
+  assert.ok(alertMessage && alertMessage.includes('al día en el período') || alertMessage.includes('Solo se permite registrar pagos'), 'Debe alertar que no adeuda dicho período');
+
+  sandbox.onAlert = null;
+  sandbox.document.getElementById = originalGetElementById;
+});
+
+test('handlePaymentSubmit procesa pago para períodos adeudados y luego bloquea duplicados (SPEC-008)', () => {
+  App.db = JSON.parse(JSON.stringify(INITIAL_SEED_DATA));
+  App.selectedYear = '2026';
+  App.selectedMonth = '11';
+
+  let alertMessage = null;
+  sandbox.onAlert = (msg) => { alertMessage = msg; };
+
+  const domValues = {
+    'pay-student-id': 'ALU-DEUDA-01',
+    'pay-period': '2026-11',
+    'pay-amount': '30000',
+    'pay-date': '2026-11-05',
+    'pay-account': 'CTA-01',
+    'pay-method': 'transferencia',
+    'pay-ref': 'REF-OK',
+    'pay-reserve-check': { checked: true },
+    'pay-reserve-amount': { value: '3000' }
+  };
+
+  const originalGetElementById = sandbox.document.getElementById;
+  sandbox.document.getElementById = (id) => {
+    if (id === 'pay-reserve-check') return domValues['pay-reserve-check'];
+    if (id === 'pay-reserve-amount') return domValues['pay-reserve-amount'];
+    if (domValues[id] !== undefined) return { value: domValues[id] };
+    return null;
+  };
+
+  App.saveDatabase = () => {};
+  App.closeDialog = () => {};
+  App.renderAll = () => {};
+
+  const student = {
+    id: 'ALU-DEUDA-01',
+    name: 'Atleta Con Deuda',
+    monthlyFee: 30000,
+    status: 'activo',
+    startDate: '2026-11-01'
+  };
+  App.db.students = [student];
+  App.db.transactions = [];
+
+  // Verificar que adeuda 2026-11
+  const stAntes = App.getStudentFinancialStatus(student, '2026', '11');
+  assert.strictEqual(stAntes.totalDebt, 30000);
+  assert.deepStrictEqual(stAntes.currentYearUnpaidMonths, ['2026-11']);
+
+  // Procesar pago legítimo
+  App.handlePaymentSubmit({ preventDefault: () => {} });
+
+  assert.strictEqual(App.db.transactions.length, 2, 'Debe registrar la transacción de mensualidad y la de fondo de reserva');
+  const feeTx = App.db.transactions.find(tx => tx.categoryCode === 'mensualidad');
+  assert.strictEqual(feeTx.amount, 30000);
+  assert.strictEqual(feeTx.period, '2026-11');
+
+  // Ahora el alumno debe estar solvente
+  const stDespues = App.getStudentFinancialStatus(student, '2026', '11');
+  assert.strictEqual(stDespues.totalDebt, 0, 'Tras el pago, la deuda debe ser $0');
+
+  // Intento de re-pago inmediato para el mismo período
+  alertMessage = null;
+  App.handlePaymentSubmit({ preventDefault: () => {} });
+
+  assert.strictEqual(App.db.transactions.length, 2, 'No debe permitir registrar un pago repetido');
+  assert.ok(alertMessage && alertMessage.includes('ya fue pagado'), 'Debe bloquear con alerta de pago previo duplicado');
+
+  sandbox.onAlert = null;
+  sandbox.document.getElementById = originalGetElementById;
 });

@@ -44,3 +44,4 @@ Al cargar o consultar los alumnos del Dojo (quienes ingresaron todos en **Noviem
      - La normalización de fechas `01-11-2026` -> `2026-11-01`.
      - Que un alumno ingresado en noviembre de 2026 tenga `historicalDebt = 0` y solo adeude noviembre de 2026 si está impago.
      - Que la importación de `BD OK Nomina_Karate_Pagos_Noviembre_2026.csv` produzca exactamente $0 de deuda arrastrada histórica y cuotas acordes a cada alumno (< $60.000 CLP).
+
